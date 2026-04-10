@@ -8,181 +8,191 @@ app.use(cors());
 app.use(express.json());
 
 // =========================================================================================
-// 1. CẤU HÌNH HỆ THỐNG TRUNG GIAN (ADMIN: TUANX3000)
+// 1. CẤU HÌNH API & TRẠNG THÁI (TUANX3000 CONFIG - V4)
 // =========================================================================================
 const API_CONFIG = {
-    NOHU: 'https://taixiu.system32-cloudfare-356783752985678522.monster/api/luckydice/GetSoiCau?access_token=05%2F7JlwSPGzCB603fmQJ2LRgxker3LXsB3UwDAmuWFIm9ePS%2F1XXM7wP3wlmMB16LVCmODRrV5DRirUc17U2EualvCdhpBers%2F%2FsHuv0tl1uOrwBqky3hnb%2BawFyyneuXdl42VfMnxKHyDlbmvc1ENnh6n7hndt76S2l6zQCwsJQkC8AUS4Tgx2tTlC9tAlgjY3x5FuhpGm%2FtSfFsBPmTgOa2dPdDXxQkROt9qsBacLqMq%2BFmiGq30OXhQQkPy6LkqBW9huthNBPJNJ4ybTofAdvGhgbhXRFYUsVFk%2FPZwDMGb3PvuyxxH5SUGueiC7hw4FPwdAT7XJT0nqUcu3U1VYtZseioncyfzBeQDKKhS%2BMeioqDzgb7npOC83fb8oor2J52Mwlhrznla4iyx6h1Sjh%2B4jnuTayZ6gPXuPPsB4%3D.af4e87166d6c7da81f362337b2417f15d45a6394b8dfb5df946e585ce0a8fa6c',
-    MD5: 'https://taixiumd5.system32-cloudfare-356783752985678522.monster/api/md5luckydice/GetSoiCau?access_token=05%2F7JlwSPGzCB603fmQJ2LRgxker3LXsB3UwDAmuWFIm9ePS%2F1XXM7wP3wlmMB16LVCmODRrV5DRirUc17U2EualvCdhpBers%2F%2FsHuv0tl1uOrwBqky3hnb%2BawFyyneuXdl42VfMnxKHyDlbmvc1ENnh6n7hndt76S2l6zQCwsJQkC8AUS4Tgx2tTlC9tAlgjY3x5FuhpGm%2FtSfFsBPmTgOa2dPdDXxQkROt9qsBacLqMq%2BFmiGq30OXhQQkPy6LkqBW9huthNBPJNJ4ybTofAdvGhgbhXRFYUsVFk%2FPZwDMGb3PvuyxxH5SUGueiC7hw4FPwdAT7XJT0nqUcu3U1VYtZseioncyfzBeQDKKhS%2BMeioqDzgb7npOC83fb8oor2J52Mwlhrznla4iyx6h1Sjh%2B4jnuTayZ6gPXuPPsB4%3D.af4e87166d6c7da81f362337b2417f15d45a6394b8dfb5df946e585ce0a8fa6c'
+    NOHU: 'https://taixiu.maksh3979madfw.com/api/luckydice/GetSoiCau?access_token=05%2F7JlwSPGzFBT3sGaKY2ZcLjROdAOOPB3UwDAmuWFKyfHGWuuM%2BC2zy%2FjjnuznAdeJ1hnJUb8IJnvmUDf44qzL49F2ysXpxi9Qj3ZQZ6ahSqlIQmeUS94Mz3ywCtmnj6ssOz4%2BcY90Z%2FFIaUyLA7aw%2FSOcfQ5jEh4AWpcuvdekhs8XvL9mZS4qPwgCPexrDRWK4gHWx7n2akAHlUFDedm6o6uPDpIEA7z1BXADeLKqizH6WVpDMuD3pEFwdC0zHP2jJtVEQgvGeDGXWLSeSr%2F00etslH1TXwCrs%2BrD4Dj%2B3OmJ3VlTStd%2BirPOtXfmDIBLEr2fUlNRwt%2BRKzRuxt3piAyOlfP1UjrYRX7ekIiTrO%2BYBr3m%2FKDgomuTf2vrP6KqCW%2F2hEdU%3D.14abebf71302f5cce8f3d94ed438ba5c1d31a484d0319b3172db76015a64b4d7',
+    MD5: 'https://taixiumd5.maksh3979madfw.com/api/md5luckydice/GetSoiCau?access_token=05%2F7JlwSPGzFBT3sGaKY2ZcLjROdAOOPB3UwDAmuWFKyfHGWuuM%2BC2zy%2FjjnuznAdeJ1hnJUb8IJnvmUDf44qzL49F2ysXpxi9Qj3ZQZ6ahSqlIQmeUS94Mz3ywCtmnj6ssOz4%2BcY90Z%2FFIaUyLA7aw%2FSOcfQ5jEh4AWpcuvdekhs8XvL9mZS4qPwgCPexrDRWK4gHWx7n2akAHlUFDedm6o6uPDpIEA7z1BXADeLKqizH6WVpDMuD3pEFwdC0zHP2jJtVEQgvGeDGXWLSeSr%2F00etslH1TXwCrs%2BrD4Dj%2B3OmJ3VlTStd%2BirPOtXfmDIBLEr2fUlNRwt%2BRKzRuxt3piAyOlfP1UjrYRX7ekIiTrO%2BYBr3m%2FKDgomuTf2vrP6KqCW%2F2hEdU%3D.14abebf71302f5cce8f3d94ed438ba5c1d31a484d0319b3172db76015a64b4d7'
 };
 
-let STATE = {
-    nohu: { history: [], lastPred: null, stats: { win: 0, loss: 0 }, processed: new Set() },
-    md5: { history: [], lastPred: null, stats: { win: 0, loss: 0 }, processed: new Set() }
+let APP_STATE = {
+    nohu: { history: [], lastPred: null, stats: { win: 0, loss: 0, total: 0 }, processed: new Set() },
+    md5:  { history: [], lastPred: null, stats: { win: 0, loss: 0, total: 0 }, processed: new Set() }
 };
 
 // =========================================================================================
-// 2. SUPREME ENGINE V5 (TỐI ƯU THUẬT TOÁN SOI CẦU & XU HƯỚNG)
+// 2. ENGINE THUẬT TOÁN PRO (GIỮ NGUYÊN NHƯ V3 - V4)
 // =========================================================================================
-class SupremeEngine {
+class SmartPredictor {
     predict(history) {
-        // Nếu API rỗng, trả về kết quả ngẫu nhiên để tool không đứng
-        if (!history || history.length < 1) {
-            return { res: Math.random() > 0.5 ? 'Tài' : 'Xỉu', conf: '50%', logic: 'Đang kết nối API...' };
+        if (!history || history.length === 0) {
+            return { 
+                ketqua: Math.random() > 0.5 ? 'Tài' : 'Xỉu', 
+                confidence: '50%', 
+                logic: 'Đang đợi dữ liệu API...' 
+            };
         }
 
         const results = history.map(h => h.result);
         const last = results[results.length - 1];
-        const fullStr = results.join('');
 
-        // --- A. PHÂN TÍCH XU HƯỚNG (TREND STRENGTH) ---
-        const last10 = results.slice(-10);
-        const taiCount10 = last10.filter(r => r === 'Tài').length;
-        // Độ mạnh xu hướng: Càng xa mốc cân bằng (5) càng mạnh
-        const trendStrength = Math.abs(taiCount10 - 5) / 5; 
-        const mainTrend = taiCount10 > 5 ? 'Tài' : 'Xỉu';
-
-        // --- B. ĐẾM DÂY BỆT ---
+        // Đếm dây bệt
         let chain = 0;
         for (let i = results.length - 1; i >= 0; i--) {
-            if (results[i] === last) chain++; else break;
+            if (results[i] === last) chain++;
+            else break;
         }
 
-        // --- C. QUYẾT ĐỊNH THEO PATTERN & XU HƯỚNG ---
-
-        // 1. Bẻ bệt sâu (Ưu tiên số 1 - Chống cháy tài khoản)
+        // 1. Bệt quá dài → bẻ cầu
         if (chain >= 6) {
-            return { res: last === 'Tài' ? 'Xỉu' : 'Tài', conf: '92%', logic: 'Bẻ cầu (Bệt quá dài)' };
+            return { ketqua: last === 'Tài' ? 'Xỉu' : 'Tài', confidence: '85%', logic: 'Bẻ cầu (Hết biên)' };
         }
-
-        // 2. Cầu 3-3 (TTT XXX)
-        if (fullStr.endsWith('TàiTàiTàiXỉuXỉuXỉu') || fullStr.endsWith('XỉuXỉuXỉuTàiTàiTài')) {
-            return { res: last === 'Tài' ? 'Xỉu' : 'Tài', conf: '88%', logic: 'Gãy nhịp 3-3' };
-        }
-
-        // 3. Cầu 2-2 (TT XX)
-        if (fullStr.endsWith('TàiTàiXỉuXỉu') || fullStr.endsWith('XỉuXỉuTàiTài')) {
-            return { res: last, conf: '85%', logic: 'Bám cầu đối xứng 2-2' };
-        }
-
-        // 4. Bám xu hướng mạnh (Trend Follower logic)
-        if (trendStrength > 0.6) {
-            const dynamicConf = Math.round(70 + trendStrength * 20) + '%';
-            return { res: mainTrend, conf: dynamicConf, logic: `Bám xu hướng ${mainTrend}` };
-        }
-
-        // 5. Cầu chéo 1-1 (TX TX)
-        const is11 = results.length >= 4 && results.slice(-4).every((v, i, a) => i === 0 || v !== a[i-1]);
-        if (is11) {
-            return { res: last === 'Tài' ? 'Xỉu' : 'Tài', conf: '82%', logic: 'Bám nhịp 1-1' };
-        }
-
-        // 6. Bám bệt ngắn (Dây 2-5 tay)
+        // 2. Đang bệt → bám bệt
         if (chain >= 2) {
-            return { res: last, conf: '75%', logic: `Bám dây bệt (${chain} tay)` };
+            return { ketqua: last, confidence: '75%', logic: `Bám bệt (${chain} tay)` };
+        }
+        // 3. Cầu 1-1 (ZigZag)
+        if (results.length >= 2 && results[results.length - 1] !== results[results.length - 2]) {
+            return { ketqua: last === 'Tài' ? 'Xỉu' : 'Tài', confidence: '80%', logic: 'Bám cầu 1-1' };
         }
 
-        // Mặc định: Đánh đảo cửa so với tay trước
-        return { res: last === 'Tài' ? 'Xỉu' : 'Tài', conf: '62%', logic: 'Cầu đảo ngắn' };
+        // Mặc định đảo
+        return { ketqua: last === 'Tài' ? 'Xỉu' : 'Tài', confidence: '60%', logic: 'Cầu đảo' };
     }
 }
 
-const engine = new SupremeEngine();
+const predictor = new SmartPredictor();
 
 // =========================================================================================
-// 3. ĐỒNG BỘ DỮ LIỆU (SOI SẠCH LỊCH SỬ - KHÔNG LỖI)
+// 3. ĐỒNG BỘ DỮ LIỆU (Cải tiến V4)
 // =========================================================================================
-async function updateData(type) {
+async function syncGameData(type) {
     try {
-        const response = await fetch(API_CONFIG[type.toUpperCase()], {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            signal: AbortSignal.timeout(5000)
-        });
-        
-        const data = await response.json();
-        const rawList = data.list || data.data || [];
-        if (rawList.length === 0) return;
+        const url = API_CONFIG[type.toUpperCase()];
 
-        const s = STATE[type];
-        
-        // Map sạch dữ liệu lịch sử từ link API
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.31',
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        const rawList = data.list || data.data || data.results || data || [];
+
+        if (rawList.length === 0) {
+            console.log(`[TUANX3000-V4] ${type} → Không có dữ liệu mới`);
+            return;
+        }
+
+        const state = APP_STATE[type];
+
         const newHistory = rawList.map(item => {
-            const rawValue = String(item.resultTruyenThong || item.resultMd5 || item.result || '').toUpperCase();
+            let resRaw = String(
+                item.resultTruyenThong || 
+                item.resultMd5 || 
+                item.result || 
+                item.Result || 
+                ''
+            ).toUpperCase();
+
             let finalRes = 'Xỉu';
-            if (rawValue.includes('TAI') || rawValue === 'T' || rawValue === '1' || parseInt(rawValue) > 10) {
+            if (resRaw.includes('TAI') || resRaw.includes('TÀI') || resRaw === 'T' || resRaw === '1' || parseInt(resRaw) > 10) {
                 finalRes = 'Tài';
             }
-            return { id: Number(item.id || item.SessionId), result: finalRes };
-        }).filter(x => x.id > 0).reverse();
+
+            return {
+                session: Number(item.id || item.SessionId || item.id_phien || item.session || 0),
+                result: finalRes
+            };
+        }).filter(h => h.session > 0).reverse();
+
+        if (newHistory.length === 0) return;
 
         const latest = newHistory[newHistory.length - 1];
 
-        // Tự động kiểm tra thắng thua cho phiên vừa qua
-        if (s.lastPred && s.lastPred.phien === latest.id && !s.processed.has(latest.id)) {
-            if (s.lastPred.ketqua === latest.result) s.stats.win++; else s.stats.loss++;
-            s.processed.add(latest.id);
-            // Giới hạn bộ nhớ processed
-            if (s.processed.size > 100) s.processed.delete(s.processed.values().next().value);
+        // Tự động tính thắng/thua
+        if (state.lastPred && state.lastPred.phien === latest.session && !state.processed.has(latest.session)) {
+            state.stats.total++;
+            if (state.lastPred.ketqua === latest.result) state.stats.win++;
+            else state.stats.loss++;
+            state.processed.add(latest.session);
+            if (state.processed.size > 100) state.processed.delete(state.processed.values().next().value);
         }
 
-        s.history = newHistory;
+        state.history = newHistory;
+        console.log(`[TUANX3000-V4] ${type} → Đồng bộ thành công ${newHistory.length} phiên`);
+
     } catch (e) {
-        // Bỏ qua lỗi kết nối tạm thời
+        console.log(`[TUANX3000-V4-ERROR] ${type}:`, e.message);
     }
 }
 
-// Cập nhật dữ liệu mỗi 5 giây/lần
-setInterval(() => { updateData('nohu'); updateData('md5'); }, 5000);
+// Sync mỗi 5 giây
+setInterval(() => {
+    syncGameData('nohu');
+    syncGameData('md5');
+}, 5000);
 
 // =========================================================================================
-// 4. API TRẢ VỀ CHO TOOL (CHUẨN JSON TUANX3000)
+// 4. API OUTPUT (ĐÃ FIX JSON ERROR)
 // =========================================================================================
 app.get('/', (req, res) => {
-    const buildResponse = (type) => {
-        const s = STATE[type];
-        const lastSession = s.history.length > 0 ? s.history[s.history.length - 1].id : 0;
-        const nextSession = lastSession + 1;
+    try {
+        const build = (type) => {
+            const s = APP_STATE[type];
+            const lastSession = s.history.length > 0 ? s.history[s.history.length - 1].session : 0;
+            const nextId = lastSession + 1;
 
-        // Chỉ tạo dự đoán mới nếu phiên tiếp theo chưa được tính toán
-        if (!s.lastPred || s.lastPred.phien !== nextSession) {
-            const p = engine.predict(s.history);
-            s.lastPred = { phien: nextSession, ketqua: p.res, tyle: p.conf, note: p.logic };
-        }
-
-        return {
-            phien_tiep: nextSession,
-            du_doan: s.lastPred.ketqua,
-            tin_cay: s.lastPred.tyle,
-            logic: s.lastPred.note,
-            lich_su_chuoi: s.history.slice(-15).map(x => x.result[0]).join(''),
-            thong_ke: {
-                thang: s.stats.win,
-                thua: s.stats.loss,
-                winrate: (s.stats.win + s.stats.loss) > 0 
-                    ? ((s.stats.win / (s.stats.win + s.stats.loss)) * 100).toFixed(1) + "%" 
-                    : "0%"
+            if (!s.lastPred || s.lastPred.phien !== nextId) {
+                const p = predictor.predict(s.history);
+                s.lastPred = { 
+                    phien: nextId, 
+                    ketqua: p.ketqua, 
+                    confidence: p.confidence, 
+                    logic: p.logic 
+                };
             }
-        };
-    };
 
-    res.json({
-        admin: "TUANX3000",
-        version: "5.0-FINAL",
-        time: new Date().toLocaleString('vi-VN'),
-        nohu: buildResponse('nohu'),
-        md5: buildResponse('md5')
-    });
+            return {
+                phien_tiep: nextId,
+                du_doan: s.lastPred.ketqua,
+                tin_cay: s.lastPred.confidence,
+                logic: s.lastPred.logic,
+                lich_su_gan_nhat: s.history.slice(-12).map(h => h.result).join(' - '),
+                thong_ke: {
+                    thang: s.stats.win,
+                    thua: s.stats.loss,
+                    winrate: s.stats.total > 0 ? ((s.stats.win / s.stats.total) * 100).toFixed(1) + "%" : "0%"
+                }
+            };
+        };
+
+        res.json({
+            system: "TX-PREDICTOR-V4-FINAL",
+            admin: "TUANX3000",
+            update_at: new Date().toLocaleString('vi-VN'),
+            nohu: build('nohu'),
+            md5: build('md5')
+        });
+    } catch (err) {
+        console.error('[TUANX3000-V4] Error:', err);
+        res.status(500).json({ error: "Server error", message: err.message });
+    }
 });
 
-// Reset thống kê nhanh
 app.get('/reset', (req, res) => {
-    Object.keys(STATE).forEach(k => {
-        STATE[k].stats = { win: 0, loss: 0 };
-        STATE[k].processed.clear();
+    Object.keys(APP_STATE).forEach(k => {
+        APP_STATE[k].stats = { win: 0, loss: 0, total: 0 };
+        APP_STATE[k].processed.clear();
     });
-    res.json({ status: "OK", message: "Đã reset bởi ADMIN TUANX3000" });
+    res.json({ message: "Đã reset thống kê - V4" });
 });
 
 app.listen(PORT, () => {
-    console.log(`[TUANX3000] SUPREME V5 ONLINE - PORT ${PORT}`);
-    updateData('nohu'); updateData('md5');
+    console.log(`🚀 ADMIN TUANX3000: TX-PREDICTOR-V4 ONLINE PORT ${PORT}`);
+    syncGameData('nohu');
+    syncGameData('md5');
 });
