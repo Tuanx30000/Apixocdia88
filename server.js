@@ -11,8 +11,8 @@ app.use(express.json());
 // 1. CẤU HÌNH HỆ THỐNG TRUNG GIAN (ADMIN: TUANX3000)
 // =========================================================================================
 const API_CONFIG = {
-    NOHU: 'https://taixiu.system32-cloudfare-356783752985678522.monster/api/luckydice/GetSoiCau?',
-    MD5: 'https://taixiumd5.system32-cloudfare-356783752985678522.monster/api/md5luckydice/GetSoiCau?'
+    NOHU: 'https://taixiu.system32-cloudfare-356783752985678522.monster/api/luckydice/GetSoiCau?access_token=05%2F7JlwSPGzCB603fmQJ2LRgxker3LXsB3UwDAmuWFIm9ePS%2F1XXM7wP3wlmMB16LVCmODRrV5DRirUc17U2EualvCdhpBers%2F%2FsHuv0tl1uOrwBqky3hnb%2BawFyyneuXdl42VfMnxKHyDlbmvc1ENnh6n7hndt76S2l6zQCwsJQkC8AUS4Tgx2tTlC9tAlgjY3x5FuhpGm%2FtSfFsBPmTgOa2dPdDXxQkROt9qsBacLqMq%2BFmiGq30OXhQQkPy6LkqBW9huthNBPJNJ4ybTofAdvGhgbhXRFYUsVFk%2FPZwDMGb3PvuyxxH5SUGueiC7hw4FPwdAT7XJT0nqUcu3U1VYtZseioncyfzBeQDKKhS%2BMeioqDzgb7npOC83fb8oor2J52Mwlhrznla4iyx6h1Sjh%2B4jnuTayZ6gPXuPPsB4%3D.af4e87166d6c7da81f362337b2417f15d45a6394b8dfb5df946e585ce0a8fa6c',
+    MD5: 'https://taixiumd5.system32-cloudfare-356783752985678522.monster/api/md5luckydice/GetSoiCau?access_token=05%2F7JlwSPGzCB603fmQJ2LRgxker3LXsB3UwDAmuWFIm9ePS%2F1XXM7wP3wlmMB16LVCmODRrV5DRirUc17U2EualvCdhpBers%2F%2FsHuv0tl1uOrwBqky3hnb%2BawFyyneuXdl42VfMnxKHyDlbmvc1ENnh6n7hndt76S2l6zQCwsJQkC8AUS4Tgx2tTlC9tAlgjY3x5FuhpGm%2FtSfFsBPmTgOa2dPdDXxQkROt9qsBacLqMq%2BFmiGq30OXhQQkPy6LkqBW9huthNBPJNJ4ybTofAdvGhgbhXRFYUsVFk%2FPZwDMGb3PvuyxxH5SUGueiC7hw4FPwdAT7XJT0nqUcu3U1VYtZseioncyfzBeQDKKhS%2BMeioqDzgb7npOC83fb8oor2J52Mwlhrznla4iyx6h1Sjh%2B4jnuTayZ6gPXuPPsB4%3D.af4e87166d6c7da81f362337b2417f15d45a6394b8dfb5df946e585ce0a8fa6c'
 };
 
 let STATE = {
