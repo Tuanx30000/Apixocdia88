@@ -1,16 +1,15 @@
 {
-  "name": "tuanx3000-data-aggregator",
-  "version": "2.0.0",
-  "description": "Tổng hợp dữ liệu Tài Xỉu từ MD5 & NOHU",
+  "name": "ai-prediction-server",
+  "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "crypto": "^1.0.1",
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7",
+    "seedrandom": "^3.0.5"
   }
 }
