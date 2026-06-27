@@ -1,7 +1,7 @@
 {
   "name": "tuanx3000-data-aggregator",
   "version": "2.0.0",
-  "description": "Tổng hợp dữ liệu Tài Xỉu từ đa nguồn (MD5 & NOHU) - bởi tuanx3000",
+  "description": "Tổng hợp dữ liệu Tài Xỉu từ đa nguồn - bởi tuanx3000",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
