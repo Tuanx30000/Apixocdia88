@@ -9,8 +9,8 @@ const app = express();
 app.use(cors());
 
 const PORT = process.env.PORT || 3000;
-const HISTORY_LIMIT = 200;      // giới hạn mỗi nguồn
-const FETCH_INTERVAL = 5000;    // 5 giây
+const HISTORY_LIMIT = 200;
+const FETCH_INTERVAL = 5000;
 
 // ==================== THƯƠNG HIỆU ====================
 const BRAND = {
@@ -51,33 +51,13 @@ const SOURCES = {
 };
 
 // ==================== LƯU TRỮ DỮ LIỆU CHO TỪNG NGUỒN ====================
-// Mỗi nguồn có: history (mảng), latest (object)
 const dataStore = {
-    MD5: {
-        history: [],
-        latest: {
-            Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null,
-            Tong: null, Ket_qua: '', nguon: 'MD5', brand: BRAND.name,
-            server_time: new Date().toISOString(), update_count: 0
-        }
-    },
-    NOHU: {
-        history: [],
-        latest: {
-            Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null,
-            Tong: null, Ket_qua: '', nguon: 'NOHU', brand: BRAND.name,
-            server_time: new Date().toISOString(), update_count: 0
-        }
-    }
+    MD5: { history: [], latest: { Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null, Tong: null, Ket_qua: '', nguon: 'MD5', brand: BRAND.name, server_time: new Date().toISOString(), update_count: 0 } },
+    NOHU: { history: [], latest: { Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null, Tong: null, Ket_qua: '', nguon: 'NOHU', brand: BRAND.name, server_time: new Date().toISOString(), update_count: 0 } }
 };
 
-// Tổng hợp chung (gộp cả 2 nguồn)
 let aggregatedHistory = [];
-let aggregatedLatest = {
-    Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null,
-    Tong: null, Ket_qua: '', nguon: 'Tổng hợp', brand: BRAND.name,
-    server_time: new Date().toISOString(), update_count: 0
-};
+let aggregatedLatest = { Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null, Tong: null, Ket_qua: '', nguon: 'Tổng hợp', brand: BRAND.name, server_time: new Date().toISOString(), update_count: 0 };
 
 // ==================== HÀM FETCH ====================
 async function fetchData(url) {
@@ -130,32 +110,24 @@ function convertToStandard(rawData, sourceName, mapping) {
     });
 }
 
-// ==================== CẬP NHẬT DỮ LIỆU CHO MỘT NGUỒN ====================
+// ==================== CẬP NHẬT DỮ LIỆU ====================
 async function refreshSource(sourceKey) {
     const source = SOURCES[sourceKey];
     if (!source) return;
-
     console.log(`[tuanx3000] ⏳ Đang cập nhật ${sourceKey}...`);
     const raw = await fetchData(source.url);
     if (!raw) {
         console.warn(`[tuanx3000] ⚠️ ${sourceKey}: không lấy được dữ liệu`);
         return;
     }
-
     const converted = convertToStandard(raw, sourceKey, source.mapping);
     if (converted.length === 0) {
         console.warn(`[tuanx3000] ⚠️ ${sourceKey}: không có phiên nào`);
         return;
     }
-
-    // Sắp xếp mới nhất trước
     converted.sort((a, b) => new Date(b.server_time) - new Date(a.server_time));
-
-    // Lưu vào store riêng
     const store = dataStore[sourceKey];
     store.history = converted.slice(0, HISTORY_LIMIT);
-
-    // Cập nhật latest
     if (store.history.length > 0) {
         const latest = store.history[0];
         store.latest = {
@@ -174,16 +146,13 @@ async function refreshSource(sourceKey) {
     }
 }
 
-// ==================== CẬP NHẬT TỔNG HỢP ====================
 function updateAggregated() {
-    // Gộp tất cả lịch sử từ 2 nguồn
     const all = [];
     for (const key of ['MD5', 'NOHU']) {
         all.push(...dataStore[key].history);
     }
     all.sort((a, b) => new Date(b.server_time) - new Date(a.server_time));
-    aggregatedHistory = all.slice(0, HISTORY_LIMIT * 2); // giữ nhiều hơn
-
+    aggregatedHistory = all.slice(0, HISTORY_LIMIT * 2);
     if (aggregatedHistory.length > 0) {
         const latest = aggregatedHistory[0];
         aggregatedLatest = {
@@ -202,7 +171,6 @@ function updateAggregated() {
     }
 }
 
-// ==================== REFRESH TOÀN BỘ ====================
 async function refreshAll() {
     await refreshSource('MD5');
     await refreshSource('NOHU');
@@ -210,8 +178,6 @@ async function refreshAll() {
 }
 
 // ==================== API ROUTES ====================
-
-// Trang chủ
 app.get('/', (req, res) => {
     res.json({
         brand: BRAND.name,
@@ -233,111 +199,54 @@ app.get('/', (req, res) => {
     });
 });
 
-// ----- TỔNG HỢP -----
-app.get('/api/latest', (req, res) => {
-    res.json(aggregatedLatest);
-});
-
+app.get('/api/latest', (req, res) => res.json(aggregatedLatest));
 app.get('/api/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
-    res.json({
-        brand: BRAND.name,
-        total: aggregatedHistory.length,
-        data: aggregatedHistory.slice(0, limit)
-    });
+    res.json({ brand: BRAND.name, total: aggregatedHistory.length, data: aggregatedHistory.slice(0, limit) });
 });
-
 app.get('/api/stats', (req, res) => {
     const total = aggregatedHistory.length;
     const tai = aggregatedHistory.filter(h => h.Ket_qua === 'Tài').length;
     const xiu = total - tai;
-    const bySource = aggregatedHistory.reduce((acc, h) => {
-        acc[h.nguon] = (acc[h.nguon] || 0) + 1;
-        return acc;
-    }, {});
-    res.json({
-        brand: BRAND.name,
-        total,
-        tai,
-        xiu,
-        tai_percent: total ? ((tai/total)*100).toFixed(2) : 0,
-        xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0,
-        by_source: bySource
-    });
+    const bySource = aggregatedHistory.reduce((acc, h) => { acc[h.nguon] = (acc[h.nguon] || 0) + 1; return acc; }, {});
+    res.json({ brand: BRAND.name, total, tai, xiu, tai_percent: total ? ((tai/total)*100).toFixed(2) : 0, xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0, by_source: bySource });
 });
 
-// ----- MD5 -----
-app.get('/api/md5/latest', (req, res) => {
-    res.json(dataStore.MD5.latest);
-});
-
+app.get('/api/md5/latest', (req, res) => res.json(dataStore.MD5.latest));
 app.get('/api/md5/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
-    res.json({
-        brand: BRAND.name,
-        source: 'MD5',
-        total: dataStore.MD5.history.length,
-        data: dataStore.MD5.history.slice(0, limit)
-    });
+    res.json({ brand: BRAND.name, source: 'MD5', total: dataStore.MD5.history.length, data: dataStore.MD5.history.slice(0, limit) });
 });
-
 app.get('/api/md5/stats', (req, res) => {
     const history = dataStore.MD5.history;
     const total = history.length;
     const tai = history.filter(h => h.Ket_qua === 'Tài').length;
     const xiu = total - tai;
-    res.json({
-        brand: BRAND.name,
-        source: 'MD5',
-        total,
-        tai,
-        xiu,
-        tai_percent: total ? ((tai/total)*100).toFixed(2) : 0,
-        xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0
-    });
+    res.json({ brand: BRAND.name, source: 'MD5', total, tai, xiu, tai_percent: total ? ((tai/total)*100).toFixed(2) : 0, xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0 });
 });
 
-// ----- NOHU -----
-app.get('/api/nohu/latest', (req, res) => {
-    res.json(dataStore.NOHU.latest);
-});
-
+app.get('/api/nohu/latest', (req, res) => res.json(dataStore.NOHU.latest));
 app.get('/api/nohu/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
-    res.json({
-        brand: BRAND.name,
-        source: 'NOHU',
-        total: dataStore.NOHU.history.length,
-        data: dataStore.NOHU.history.slice(0, limit)
-    });
+    res.json({ brand: BRAND.name, source: 'NOHU', total: dataStore.NOHU.history.length, data: dataStore.NOHU.history.slice(0, limit) });
 });
-
 app.get('/api/nohu/stats', (req, res) => {
     const history = dataStore.NOHU.history;
     const total = history.length;
     const tai = history.filter(h => h.Ket_qua === 'Tài').length;
     const xiu = total - tai;
-    res.json({
-        brand: BRAND.name,
-        source: 'NOHU',
-        total,
-        tai,
-        xiu,
-        tai_percent: total ? ((tai/total)*100).toFixed(2) : 0,
-        xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0
-    });
+    res.json({ brand: BRAND.name, source: 'NOHU', total, tai, xiu, tai_percent: total ? ((tai/total)*100).toFixed(2) : 0, xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0 });
 });
 
-// ==================== KHỞI ĐỘNG SERVER ====================
+// ==================== KHỞI ĐỘNG ====================
 app.listen(PORT, '0.0.0.0', async () => {
-    const interfaces = os.networkInterfaces();
+    const ifaces = os.networkInterfaces();
     let ip = '127.0.0.1';
-    for (const iface of Object.values(interfaces)) {
+    for (const iface of Object.values(ifaces)) {
         for (const addr of iface) {
             if (!addr.internal && addr.family === 'IPv4') ip = addr.address;
         }
     }
-
     console.log(`\n╔═══════════════════════════════════════════════════╗`);
     console.log(`║   🚀 SERVER TỔNG HỢP DỮ LIỆU MD5 & NOHU    ║`);
     console.log(`║   👤 Bản quyền: tuanx3000                    ║`);
@@ -347,7 +256,6 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`║   🌐 Network: http://${ip}:${PORT}             ║`);
     console.log(`╚═══════════════════════════════════════════════════╝\n`);
     console.log(`[tuanx3000] ✅ Server đã sẵn sàng, cập nhật mỗi ${FETCH_INTERVAL/1000}s`);
-
     await refreshAll();
     setInterval(refreshAll, FETCH_INTERVAL);
 });
