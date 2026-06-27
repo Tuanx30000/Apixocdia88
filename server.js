@@ -1,222 +1,353 @@
-/**
- * =========================================================================================
- * 🚀 TUANX3000 ULTIMATE V10.3 - THE FINAL ENGINE
- * ADMIN: TUANX3000 | VERSION: 10.3 PRO MAX
- * ĐA THUẬT TOÁN + AUTO-SYNC + ANTI-CRASH RAILWAY
- * =========================================================================================
- */
+// server.js
+// Bản quyền: tuanx3000 - Tổng hợp dữ liệu Tài Xỉu từ đa nguồn (MD5 & NOHU)
 
 const express = require('express');
 const cors = require('cors');
+const os = require('os');
+
 const app = express();
-const PORT = process.env.PORT || 8000;
-
 app.use(cors());
-app.use(express.json());
 
-// 1. CẤU HÌNH HỆ THỐNG
-const CONFIG = {
-    ADMIN: "TUANX3000",
-    VERSION: "10.3 PRO MAX",
-    SYNC_INTERVAL: 3000,
-    ENDPOINTS: {
-        NOHU: 'https://taixiu.system32-cloudfare-356783752985678522.monster/api/luckydice/GetSoiCau?access_token=05%2F7JlwSPGzCB603fmQJ2LRgxker3LXsB3UwDAmuWFIm9ePS%2F1XXM7wP3wlmMB16LVCmODRrV5DRirUc17U2EualvCdhpBers%2F%2FsHuv0tl1uOrwBqky3hnb%2BawFyyneuXdl42VfMnxKHyDlbmvc1ENnh6n7hndt76S2l6zQCwsJQkC8AUS4Tgx2tTlC9tAlgjY3x5FuhpGm%2FtSfFsBPmTgOa2dPdDXxQkROt9qsBacLqMq%2BFmiGq30OXhQQkPy6LkqBW9huthNBPJNJ4ybTofAdvGhgbhXRFYUsVFk%2FPZwDMGb3PvuyxxH5SUGueiC7hw4FPwdAT7XJT0nqUcu3U1VYtZseioncyfzBeQDKKhS%2BMeioqDzgb7npOC83fb8oor2J52Mwlhrznla4iyx6h1Sjh%2B4jnuTayZ6gPXuPPsB4%3D.af4e87166d6c7da81f362337b2417f15d45a6394b8dfb5df946e585ce0a8fa6c',
-        MD5: 'https://taixiumd5.system32-cloudfare-356783752985678522.monster/api/md5luckydice/GetSoiCau?access_token=05%2F7JlwSPGzCB603fmQJ2LRgxker3LXsB3UwDAmuWFIm9ePS%2F1XXM7wP3wlmMB16LVCmODRrV5DRirUc17U2EualvCdhpBercF4lEtCzawXzAQna8Fs2wRabUFeu80mKL8fj8IAGPMsP45pdIIXZysKmRi40b%2FOVLAp4yOpkaXO20ojipFSKTtn7TTM8v9v9Z1sJx%2BjIDZ%2B3lx5JM%2BoUuP%2Fkjgh5xWXtOPx9FkyKPEBY25AdX3CvOcjOZP5wTJcTMKTon1%2FxmfMgV5GWn25w7EtZR2srxv3Rt03dw%2FNg0TT%2FIKw%2F1IPCNY2oi8RygWpHwIFWcHGdeoTeM6kskfrqNSmhapPBCREit0So1HOC6jOiz5IyKVNadwp8EfsxKzBOKE0z0zdavvY6wXrSZhEJeDmQq4dyeUwQNDYOJP%2B%2Fh7o%3D.a83a4fbc291bb9e436363c167eee148fce60c62d3eaebd36413bd63268ab7218'
-    }
+const PORT = process.env.PORT || 3000;
+const HISTORY_LIMIT = 200;      // giới hạn mỗi nguồn
+const FETCH_INTERVAL = 5000;    // 5 giây
+
+// ==================== THƯƠNG HIỆU ====================
+const BRAND = {
+    name: 'tuanx3000',
+    version: '2.0.0',
+    author: 'tuanx3000',
+    contact: 'https://t.me/tuanx3000'
 };
 
-// 2. CƠ SỞ DỮ LIỆU TẠM THỜI
-let DATA_STORE = {
-    nohu: { history: [], lastPrediction: null, stats: { win: 0, loss: 0, total: 0 }, processedSessions: new Set() },
-    md5: { history: [], lastPrediction: null, stats: { win: 0, loss: 0, total: 0 }, processedSessions: new Set() }
-};
-
-// 3. CÔNG CỤ CHUẨN HÓA DỮ LIỆU
-const Utils = {
-    standardize: (item) => {
-        let raw = String(item.resultTruyenThong || item.result || item.BetSide || '').toUpperCase();
-        if (raw.includes('TAI') || raw.includes('TÀI') || (item.DiceSum && item.DiceSum >= 11)) return 'Tài';
-        return 'Xỉu';
-    }
-};
-
-// 4. HỆ THỐNG PHÂN TÍCH (ALGORITHMS)
-const Algos = {
-    markovChain: (h) => {
-        const last4 = h.map(x => x.result === 'Tài' ? 'T' : 'X').slice(-4).join('');
-        const patterns = { 'TTTT': 'X', 'XXXX': 'T', 'TXTX': 'T', 'XTXT': 'X', 'TTXX': 'T', 'XXTT': 'X' };
-        return patterns[last4] || null;
+// ==================== ĐỊNH NGHĨA 2 NGUỒN RIÊNG ====================
+const SOURCES = {
+    MD5: {
+        name: 'MD5',
+        url: 'https://taixiumd5.system32-cloudfare-356783752985678522.monster/api/md5luckydice/GetSoiCau?access_token=05%2F7JlwSPGzCB603fmQJ2LRgxker3LXsB3UwDAmuWFIm9ePS%2F1XXM7wP3wlmMB16LVCmODRrV5BnR6kh01ieEa1YE3byVv3jXdl42VfMnxKHyDlbmvc1ENnh6n7hndt76S2l6zQCwsIQZTipEAUt46PFfV7ND7EU4bQCq193fDO%2FtSfFsBPmTgOa2dPdDXxQkROt9qsBacLqMq%2BFmiGq30OXhQQkPy6LkqBW9huthNBPJNJ4ybTofAdvGhgbhXRFYUsVFk%2FPZwDMGb3PvuyxxH5SUGueiC7hw4FPwdAT7XLC7W%2FWifLHgVsym750oS1XV1rdhoLoN2HNddd2DQqLwPiaVtHQaOsPr2J52Mwlhrwa9oK9inHUIxa14xMk%2B0Jgreyd8urEUZ8%3D.9693f922987a1adb6081acbc91ef26e1386e6dd07078ef53e345e8a5c1e62baf',
+        mapping: {
+            dice1: 'FirstDice',
+            dice2: 'SecondDice',
+            dice3: 'ThirdDice',
+            sum: 'DiceSum',
+            session: 'SessionId',
+            bet: 'BetSide',
+            time: 'CreatedDate'
+        }
     },
-    frequency: (h) => {
-        const countT = h.slice(-12).filter(x => x.result === 'Tài').length;
-        if (countT >= 8) return 'X';
-        if (countT <= 4) return 'T';
-        return null;
-    },
-    trendFollow: (h) => {
-        const last3 = h.slice(-3);
-        if (last3.length < 3) return null;
-        if (last3.every(v => v.result === last3[0].result)) return last3[0].result;
-        return null;
-    }
-};
-
-// 5. BỘ NÃO DỰ ĐOÁN TỔNG HỢP
-function predictNext(type) {
-    const history = DATA_STORE[type].history;
-    if (history.length < 10) return { res: 'N/A', conf: '0%', log: 'Đang nạp dữ liệu' };
-
-    const lastResult = history[history.length - 1].result;
-    
-    // Kiểm tra bệt (Ưu tiên số 1)
-    let streak = 0;
-    for (let i = history.length - 1; i >= 0; i--) {
-        if (history[i].result === lastResult) streak++; else break;
-    }
-
-    if (streak >= 3 && streak <= 5) {
-        return { res: lastResult, conf: '88%', log: 'THEO BỆT TAY ' + (streak + 1) };
-    }
-
-    // Biểu quyết từ các thuật toán
-    let votes = { T: 0, X: 0 };
-    const pMarkov = Algos.markovChain(history);
-    const pFreq = Algos.frequency(history);
-    const pTrend = Algos.trendFollow(history);
-
-    if (pMarkov === 'T') votes.T += 2; else if (pMarkov === 'X') votes.X += 2;
-    if (pFreq === 'T') votes.T += 1; else if (pFreq === 'X') votes.X += 1;
-    if (pTrend === 'T') votes.T += 1; else if (pTrend === 'X') votes.X += 1;
-
-    if (votes.T > votes.X) return { res: 'Tài', conf: '75%', log: 'AI VOTE TÀI' };
-    if (votes.X > votes.T) return { res: 'Xỉu', conf: '75%', log: 'AI VOTE XỈU' };
-
-    return { res: lastResult === 'Tài' ? 'Xỉu' : 'Tài', conf: '60%', log: 'ĐÁNH CẦU ĐẢO' };
-}
-
-// 6. LUỒNG ĐỒNG BỘ DỮ LIỆU
-async function runSync() {
-    for (const key of ['nohu', 'md5']) {
-        try {
-            const response = await fetch(CONFIG.ENDPOINTS[key.toUpperCase()]);
-            const json = await response.json();
-            const list = Array.isArray(json) ? json : (json.list || json.data || []);
-            const state = DATA_STORE[key];
-
-            const cleanList = list.map(item => ({
-                session: Number(item.id || item.SessionId || 0),
-                result: Utils.standardize(item)
-            })).filter(h => h.session > 0).sort((a, b) => a.session - b.session);
-
-            if (cleanList.length > 0) {
-                const latest = cleanList[cleanList.length - 1];
-                
-                // Đối soát thắng thua
-                if (state.lastPrediction && state.lastPrediction.session === latest.session) {
-                    if (!state.processedSessions.has(latest.session)) {
-                        if (state.lastPrediction.res === latest.result) {
-                            state.stats.win++;
-                        } else {
-                            state.stats.loss++;
-                        }
-                        state.stats.total++;
-                        state.processedSessions.add(latest.session);
-                    }
-                }
-                state.history = cleanList;
-            }
-        } catch (err) {
-            console.log('Error Syncing ' + key);
+    NOHU: {
+        name: 'NOHU',
+        url: 'https://taixiu.system32-cloudfare-356783752985678522.monster/api/luckydice/GetSoiCau?access_token=05%2F7JlwSPGzCB603fmQJ2LRgxker3LXsB3UwDAmuWFIm9ePS%2F1XXM7wP3wlmMB16LVCmODRrV5BnR6kh01ieEa1YE3byVv3jXdl42VfMnxKHyDlbmvc1ENnh6n7hndt76S2l6zQCwsIQZTipEAUt46PFfV7ND7EU4bQCq193fDO%2FtSfFsBPmTgOa2dPdDXxQkROt9qsBacLqMq%2BFmiGq30OXhQQkPy6LkqBW9huthNBPJNJ4ybTofAdvGhgbhXRFYUsVFk%2FPZwDMGb3PvuyxxH5SUGueiC7hw4FPwdAT7XLC7W%2FWifLHgVsym750oS1XV1rdhoLoN2HNddd2DQqLwPiaVtHQaOsPr2J52Mwlhrwa9oK9inHUIxa14xMk%2B0Jgreyd8urEUZ8%3D.9693f922987a1adb6081acbc91ef26e1386e6dd07078ef53e345e8a5c1e62baf',
+        mapping: {
+            dice1: 'FirstDisc',
+            dice2: 'SecondDisc',
+            dice3: 'ThirdDisc',
+            sum: 'DiscSum',
+            session: 'SessionId',
+            bet: 'BetSide',
+            time: 'CreatedDate'
         }
     }
+};
+
+// ==================== LƯU TRỮ DỮ LIỆU CHO TỪNG NGUỒN ====================
+// Mỗi nguồn có: history (mảng), latest (object)
+const dataStore = {
+    MD5: {
+        history: [],
+        latest: {
+            Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null,
+            Tong: null, Ket_qua: '', nguon: 'MD5', brand: BRAND.name,
+            server_time: new Date().toISOString(), update_count: 0
+        }
+    },
+    NOHU: {
+        history: [],
+        latest: {
+            Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null,
+            Tong: null, Ket_qua: '', nguon: 'NOHU', brand: BRAND.name,
+            server_time: new Date().toISOString(), update_count: 0
+        }
+    }
+};
+
+// Tổng hợp chung (gộp cả 2 nguồn)
+let aggregatedHistory = [];
+let aggregatedLatest = {
+    Phien: null, Xuc_xac_1: null, Xuc_xac_2: null, Xuc_xac_3: null,
+    Tong: null, Ket_qua: '', nguon: 'Tổng hợp', brand: BRAND.name,
+    server_time: new Date().toISOString(), update_count: 0
+};
+
+// ==================== HÀM FETCH ====================
+async function fetchData(url) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error(`[tuanx3000] Lỗi fetch ${url}:`, error.message);
+        return null;
+    }
 }
 
-// Khởi tạo vòng lặp
-setInterval(runSync, CONFIG.SYNC_INTERVAL);
+// ==================== CHUYỂN ĐỔI DỮ LIỆU ====================
+function convertToStandard(rawData, sourceName, mapping) {
+    if (!rawData) return [];
+    let items = rawData;
+    if (rawData && typeof rawData === 'object' && Array.isArray(rawData.data)) {
+        items = rawData.data;
+    }
+    if (!Array.isArray(items)) return [];
 
-// 7. API ENDPOINTS
-app.get('/api/all', (req, res) => {
-    const buildResponse = (type) => {
-        const s = DATA_STORE[type];
-        const lastSes = s.history.length > 0 ? s.history[s.history.length - 1].session : 0;
-        const pred = predictNext(type);
-        
-        // Ghi nhớ dự đoán cho phiên tiếp theo
-        s.lastPrediction = { session: lastSes + 1, res: pred.res };
+    return items.map(item => {
+        const get = (key) => item[mapping[key]] || item[key] || 0;
+        const firstDice = get('dice1');
+        const secondDice = get('dice2');
+        const thirdDice = get('dice3');
+        const diceSum = get('sum');
+        const sessionId = get('session') || '';
+        const betSide = item[mapping.bet] !== undefined ? item[mapping.bet] : null;
+        const createdDate = get('time') || new Date().toISOString();
+
+        let ketQua;
+        if (betSide !== null && betSide !== undefined) {
+            ketQua = (betSide === 0) ? 'Tài' : 'Xỉu';
+        } else {
+            ketQua = (diceSum >= 11) ? 'Tài' : 'Xỉu';
+        }
 
         return {
-            phien_hien_tai: lastSes,
-            phien_tiep: lastSes + 1,
-            du_doan: pred.res,
-            tin_cay: pred.conf,
-            phan_tich: pred.log,
-            stats: {
-                win: s.stats.win,
-                loss: s.stats.loss,
-                rate: s.stats.total > 0 ? ((s.stats.win / s.stats.total) * 100).toFixed(1) + '%' : '0%'
-            },
-            history_str: s.history.slice(-12).map(x => x.result[0]).join('-')
+            Phien: sessionId,
+            Xuc_xac_1: firstDice,
+            Xuc_xac_2: secondDice,
+            Xuc_xac_3: thirdDice,
+            Tong: diceSum,
+            Ket_qua: ketQua,
+            nguon: sourceName,
+            server_time: createdDate
         };
-    };
+    });
+}
 
+// ==================== CẬP NHẬT DỮ LIỆU CHO MỘT NGUỒN ====================
+async function refreshSource(sourceKey) {
+    const source = SOURCES[sourceKey];
+    if (!source) return;
+
+    console.log(`[tuanx3000] ⏳ Đang cập nhật ${sourceKey}...`);
+    const raw = await fetchData(source.url);
+    if (!raw) {
+        console.warn(`[tuanx3000] ⚠️ ${sourceKey}: không lấy được dữ liệu`);
+        return;
+    }
+
+    const converted = convertToStandard(raw, sourceKey, source.mapping);
+    if (converted.length === 0) {
+        console.warn(`[tuanx3000] ⚠️ ${sourceKey}: không có phiên nào`);
+        return;
+    }
+
+    // Sắp xếp mới nhất trước
+    converted.sort((a, b) => new Date(b.server_time) - new Date(a.server_time));
+
+    // Lưu vào store riêng
+    const store = dataStore[sourceKey];
+    store.history = converted.slice(0, HISTORY_LIMIT);
+
+    // Cập nhật latest
+    if (store.history.length > 0) {
+        const latest = store.history[0];
+        store.latest = {
+            Phien: latest.Phien,
+            Xuc_xac_1: latest.Xuc_xac_1,
+            Xuc_xac_2: latest.Xuc_xac_2,
+            Xuc_xac_3: latest.Xuc_xac_3,
+            Tong: latest.Tong,
+            Ket_qua: latest.Ket_qua,
+            nguon: sourceKey,
+            brand: BRAND.name,
+            server_time: new Date().toISOString(),
+            update_count: (store.latest.update_count || 0) + 1
+        };
+        console.log(`[tuanx3000] ✅ ${sourceKey}: ${converted.length} phiên, mới nhất: ${latest.Phien} - ${latest.Xuc_xac_1}-${latest.Xuc_xac_2}-${latest.Xuc_xac_3} = ${latest.Tong} (${latest.Ket_qua})`);
+    }
+}
+
+// ==================== CẬP NHẬT TỔNG HỢP ====================
+function updateAggregated() {
+    // Gộp tất cả lịch sử từ 2 nguồn
+    const all = [];
+    for (const key of ['MD5', 'NOHU']) {
+        all.push(...dataStore[key].history);
+    }
+    all.sort((a, b) => new Date(b.server_time) - new Date(a.server_time));
+    aggregatedHistory = all.slice(0, HISTORY_LIMIT * 2); // giữ nhiều hơn
+
+    if (aggregatedHistory.length > 0) {
+        const latest = aggregatedHistory[0];
+        aggregatedLatest = {
+            Phien: latest.Phien,
+            Xuc_xac_1: latest.Xuc_xac_1,
+            Xuc_xac_2: latest.Xuc_xac_2,
+            Xuc_xac_3: latest.Xuc_xac_3,
+            Tong: latest.Tong,
+            Ket_qua: latest.Ket_qua,
+            nguon: latest.nguon + ' (tổng hợp)',
+            brand: BRAND.name,
+            server_time: new Date().toISOString(),
+            update_count: (aggregatedLatest.update_count || 0) + 1
+        };
+        console.log(`[tuanx3000] 🔄 Tổng hợp: ${aggregatedHistory.length} phiên, mới nhất từ ${latest.nguon}`);
+    }
+}
+
+// ==================== REFRESH TOÀN BỘ ====================
+async function refreshAll() {
+    await refreshSource('MD5');
+    await refreshSource('NOHU');
+    updateAggregated();
+}
+
+// ==================== API ROUTES ====================
+
+// Trang chủ
+app.get('/', (req, res) => {
     res.json({
-        author: CONFIG.ADMIN,
-        version: CONFIG.VERSION,
-        server_time: new Date().toLocaleString(),
-        data: {
-            nohu: buildResponse('nohu'),
-            md5: buildResponse('md5')
+        brand: BRAND.name,
+        version: BRAND.version,
+        author: BRAND.author,
+        contact: BRAND.contact,
+        message: 'Server tổng hợp dữ liệu Tài Xỉu - bởi tuanx3000',
+        endpoints: {
+            '/api/latest': 'Kết quả mới nhất tổng hợp',
+            '/api/history?limit=20': 'Lịch sử tổng hợp',
+            '/api/stats': 'Thống kê tổng hợp',
+            '/api/md5/latest': 'Kết quả mới nhất từ MD5',
+            '/api/md5/history': 'Lịch sử từ MD5',
+            '/api/md5/stats': 'Thống kê từ MD5',
+            '/api/nohu/latest': 'Kết quả mới nhất từ NOHU',
+            '/api/nohu/history': 'Lịch sử từ NOHU',
+            '/api/nohu/stats': 'Thống kê từ NOHU'
         }
     });
 });
 
-// Giao diện người dùng (Dashboard)
-app.get('/', (req, res) => {
-    res.send(`
-        <body style="background:#0a0a0a; color:#00ff00; font-family:monospace; text-align:center; padding-top:50px;">
-            <h1 style="color:#00ffcc; text-shadow:0 0 10px #00ffcc;">🚀 TUANX3000 CORE V10.3 ALL-IN-ONE</h1>
-            <p>API: <a href="/api/all" style="color:#fff;">/api/all</a></p>
-            <div style="display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:30px;">
-                <div style="border:2px solid #00ffcc; padding:20px; width:350px; border-radius:15px; background:#111;">
-                    <h2 style="color:#00ffcc;">TÀI XỈU NỔ HŨ</h2>
-                    <div id="nohu_ui">Loading...</div>
-                </div>
-                <div style="border:2px solid #ff00ff; padding:20px; width:350px; border-radius:15px; background:#111;">
-                    <h2 style="color:#ff00ff;">TÀI XỈU MD5</h2>
-                    <div id="md5_ui">Loading...</div>
-                </div>
-            </div>
-            <script>
-                async function fetchFullData() {
-                    try {
-                        const r = await fetch('/api/all');
-                        const d = await r.json();
-                        
-                        const render = (target, item, color) => {
-                            document.getElementById(target).innerHTML = ' \
-                                <h1 style="font-size:50px; color:'+color+'; margin:10px 0;">'+item.du_doan+'</h1> \
-                                <p>Độ tin cậy: <b>'+item.tin_cay+'</b></p> \
-                                <p>Logic: <i>'+item.phan_tich+'</i></p> \
-                                <p>Cầu: '+item.history_str+'</p> \
-                                <p style="border-top:1px solid #333; padding-top:10px;">Thắng: '+item.stats.win+' | Thua: '+item.stats.loss+' | Tỷ lệ: '+item.stats.rate+'</p> \
-                            ';
-                        };
-                        
-                        render('nohu_ui', d.data.nohu, '#00ffcc');
-                        render('md5_ui', d.data.md5, '#ff00ff');
-                    } catch(e) {}
-                }
-                setInterval(fetchFullData, 2000);
-                fetchFullData();
-            </script>
-        </body>
-    `);
+// ----- TỔNG HỢP -----
+app.get('/api/latest', (req, res) => {
+    res.json(aggregatedLatest);
 });
 
-// Chạy Server
-app.listen(PORT, () => {
-    console.log('--- SYSTEM ONLINE ---');
-    console.log('Admin: ' + CONFIG.ADMIN);
-    console.log('Port: ' + PORT);
-    runSync();
+app.get('/api/history', (req, res) => {
+    const limit = parseInt(req.query.limit) || 20;
+    res.json({
+        brand: BRAND.name,
+        total: aggregatedHistory.length,
+        data: aggregatedHistory.slice(0, limit)
+    });
+});
+
+app.get('/api/stats', (req, res) => {
+    const total = aggregatedHistory.length;
+    const tai = aggregatedHistory.filter(h => h.Ket_qua === 'Tài').length;
+    const xiu = total - tai;
+    const bySource = aggregatedHistory.reduce((acc, h) => {
+        acc[h.nguon] = (acc[h.nguon] || 0) + 1;
+        return acc;
+    }, {});
+    res.json({
+        brand: BRAND.name,
+        total,
+        tai,
+        xiu,
+        tai_percent: total ? ((tai/total)*100).toFixed(2) : 0,
+        xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0,
+        by_source: bySource
+    });
+});
+
+// ----- MD5 -----
+app.get('/api/md5/latest', (req, res) => {
+    res.json(dataStore.MD5.latest);
+});
+
+app.get('/api/md5/history', (req, res) => {
+    const limit = parseInt(req.query.limit) || 20;
+    res.json({
+        brand: BRAND.name,
+        source: 'MD5',
+        total: dataStore.MD5.history.length,
+        data: dataStore.MD5.history.slice(0, limit)
+    });
+});
+
+app.get('/api/md5/stats', (req, res) => {
+    const history = dataStore.MD5.history;
+    const total = history.length;
+    const tai = history.filter(h => h.Ket_qua === 'Tài').length;
+    const xiu = total - tai;
+    res.json({
+        brand: BRAND.name,
+        source: 'MD5',
+        total,
+        tai,
+        xiu,
+        tai_percent: total ? ((tai/total)*100).toFixed(2) : 0,
+        xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0
+    });
+});
+
+// ----- NOHU -----
+app.get('/api/nohu/latest', (req, res) => {
+    res.json(dataStore.NOHU.latest);
+});
+
+app.get('/api/nohu/history', (req, res) => {
+    const limit = parseInt(req.query.limit) || 20;
+    res.json({
+        brand: BRAND.name,
+        source: 'NOHU',
+        total: dataStore.NOHU.history.length,
+        data: dataStore.NOHU.history.slice(0, limit)
+    });
+});
+
+app.get('/api/nohu/stats', (req, res) => {
+    const history = dataStore.NOHU.history;
+    const total = history.length;
+    const tai = history.filter(h => h.Ket_qua === 'Tài').length;
+    const xiu = total - tai;
+    res.json({
+        brand: BRAND.name,
+        source: 'NOHU',
+        total,
+        tai,
+        xiu,
+        tai_percent: total ? ((tai/total)*100).toFixed(2) : 0,
+        xiu_percent: total ? ((xiu/total)*100).toFixed(2) : 0
+    });
+});
+
+// ==================== KHỞI ĐỘNG SERVER ====================
+app.listen(PORT, '0.0.0.0', async () => {
+    const interfaces = os.networkInterfaces();
+    let ip = '127.0.0.1';
+    for (const iface of Object.values(interfaces)) {
+        for (const addr of iface) {
+            if (!addr.internal && addr.family === 'IPv4') ip = addr.address;
+        }
+    }
+
+    console.log(`\n╔═══════════════════════════════════════════════════╗`);
+    console.log(`║   🚀 SERVER TỔNG HỢP DỮ LIỆU MD5 & NOHU    ║`);
+    console.log(`║   👤 Bản quyền: tuanx3000                    ║`);
+    console.log(`║   📦 Phiên bản: ${BRAND.version}                        ║`);
+    console.log(`╠═══════════════════════════════════════════════════╣`);
+    console.log(`║   🌐 Local:  http://localhost:${PORT}           ║`);
+    console.log(`║   🌐 Network: http://${ip}:${PORT}             ║`);
+    console.log(`╚═══════════════════════════════════════════════════╝\n`);
+    console.log(`[tuanx3000] ✅ Server đã sẵn sàng, cập nhật mỗi ${FETCH_INTERVAL/1000}s`);
+
+    await refreshAll();
+    setInterval(refreshAll, FETCH_INTERVAL);
 });
